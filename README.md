@@ -49,6 +49,12 @@ TELEGRAM_BOT_TOKEN=123456:your_bot_token
 TELEGRAM_CHAT_ID=123456789
 ```
 
+To test real Telegram delivery:
+
+```bash
+cargo test sends_real_telegram_message_when_env_is_configured -- --ignored --nocapture
+```
+
 `trade_sizes` should be conservative. A profitable quote can disappear before your transaction lands, and larger trades create more price impact.
 
 `min_profit_bps` is applied after gas only when `token_start == native_wrapped_token`. For non-native start tokens, the bot reports gross token profit because gas is paid in ETH, not the ERC-20 token.
