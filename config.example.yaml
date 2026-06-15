@@ -1,0 +1,59 @@
+# RPC 地址来自 .env 的 RPC_URL。
+rpc_url: "${RPC_URL}"
+
+# WSS RPC 地址；watch-blocks 模式优先使用它订阅新区块。
+ws_rpc_url: "${WS_RPC_URL}"
+
+# watch 模式轮询间隔，单位秒。
+poll_interval_secs: ${POLL_INTERVAL_SECS}
+
+# dry_run = 只扫描打印；live = 调用执行合约发交易。
+run_mode: ${RUN_MODE}
+
+# 用于 gas 后净利润估算。只有套利起始/结束 token 是这个地址时，才会扣 gas。
+# 主网示例为 WETH。
+native_wrapped_token: "${WETH_ADDRESS}"
+
+# 最小利润阈值，单位 bps；20 表示 0.20%。
+min_profit_bps: ${MIN_PROFIT_BPS}
+
+# 执行交易预估 gas limit，用于保守过滤机会。
+gas_limit: ${GAS_LIMIT}
+
+# 最大 gas price，单位 gwei，用于估算 gas 成本。
+max_gas_price_gwei: ${MAX_GAS_PRICE_GWEI}
+
+# 调试报价开关；true 会输出每条路线报价和过滤原因。
+debug_quotes: ${DEBUG_QUOTES}
+
+trade_sizes:
+  # 单次尝试交易规模；token 是起始 token，amount_wei 是最小单位整数。
+  - token: "${WETH_ADDRESS}"
+    amount_wei: "${TRADE_AMOUNT_WEI}"
+
+pools:
+  # Uniswap V2 WETH/LINK 池：用 pair reserves 本地计算报价。
+  - kind: v2
+    name: "uniswap-v2-weth-link"
+    pair: "${UNISWAP_V2_WETH_LINK_PAIR}"
+    router: "${UNISWAP_V2_ROUTER}"
+    token0: "${LINK_ADDRESS}"
+    token1: "${WETH_ADDRESS}"
+    # V2 手续费，单位 bps；30 = 0.30%。
+    fee_bps: ${UNISWAP_V2_FEE_BPS}
+
+  # Uniswap V3 WETH/LINK 0.30% 池：用 Quoter eth_call 报价。
+  - kind: v3
+    name: "uniswap-v3-weth-link-3000"
+    quoter: "${UNISWAP_V3_QUOTER}"
+    router: "${UNISWAP_V3_ROUTER}"
+    token0: "${LINK_ADDRESS}"
+    token1: "${WETH_ADDRESS}"
+    # V3 fee tier；WETH/LINK 先用 3000 = 0.30%。
+    fee: ${UNISWAP_V3_FEE}
+
+# 仅在 run_mode: live 时需要。真实私钥请使用 ${PRIVATE_KEY}，不要写死。
+# executor:
+#   address: "${EXECUTOR_ADDRESS}"
+#   private_key: "${PRIVATE_KEY}"
+#   deadline_secs: ${DEADLINE_SECS}

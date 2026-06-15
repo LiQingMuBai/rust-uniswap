@@ -1,0 +1,6 @@
+/target
+.env
+config.yaml
+.idea/
+outputs/
+work/
