@@ -52,6 +52,60 @@ pools:
     # V3 fee tier；WETH/LINK 先用 3000 = 0.30%。
     fee: ${UNISWAP_V3_FEE}
 
+  # Uniswap V2 WETH/UNI 池。
+  - kind: v2
+    name: "uniswap-v2-weth-uni"
+    pair: "${UNISWAP_V2_WETH_UNI_PAIR}"
+    router: "${UNISWAP_V2_ROUTER}"
+    token0: "${UNI_ADDRESS}"
+    token1: "${WETH_ADDRESS}"
+    fee_bps: ${UNISWAP_V2_FEE_BPS}
+
+  # Uniswap V3 WETH/UNI 0.30% 池。
+  - kind: v3
+    name: "uniswap-v3-weth-uni-3000"
+    quoter: "${UNISWAP_V3_QUOTER}"
+    router: "${UNISWAP_V3_ROUTER}"
+    token0: "${UNI_ADDRESS}"
+    token1: "${WETH_ADDRESS}"
+    fee: ${UNISWAP_V3_FEE}
+
+  # Uniswap V2 WETH/AAVE 池。
+  - kind: v2
+    name: "uniswap-v2-weth-aave"
+    pair: "${UNISWAP_V2_WETH_AAVE_PAIR}"
+    router: "${UNISWAP_V2_ROUTER}"
+    token0: "${AAVE_ADDRESS}"
+    token1: "${WETH_ADDRESS}"
+    fee_bps: ${UNISWAP_V2_FEE_BPS}
+
+  # Uniswap V3 WETH/AAVE 0.30% 池。
+  - kind: v3
+    name: "uniswap-v3-weth-aave-3000"
+    quoter: "${UNISWAP_V3_QUOTER}"
+    router: "${UNISWAP_V3_ROUTER}"
+    token0: "${AAVE_ADDRESS}"
+    token1: "${WETH_ADDRESS}"
+    fee: ${UNISWAP_V3_FEE}
+
+  # Uniswap V2 WETH/WBTC 池。
+  - kind: v2
+    name: "uniswap-v2-weth-wbtc"
+    pair: "${UNISWAP_V2_WETH_WBTC_PAIR}"
+    router: "${UNISWAP_V2_ROUTER}"
+    token0: "${WBTC_ADDRESS}"
+    token1: "${WETH_ADDRESS}"
+    fee_bps: ${UNISWAP_V2_FEE_BPS}
+
+  # Uniswap V3 WETH/WBTC 0.30% 池。
+  - kind: v3
+    name: "uniswap-v3-weth-wbtc-3000"
+    quoter: "${UNISWAP_V3_QUOTER}"
+    router: "${UNISWAP_V3_ROUTER}"
+    token0: "${WBTC_ADDRESS}"
+    token1: "${WETH_ADDRESS}"
+    fee: ${UNISWAP_V3_FEE}
+
 # 仅在 run_mode: live 时需要。真实私钥请使用 ${PRIVATE_KEY}，不要写死。
 # executor:
 #   address: "${EXECUTOR_ADDRESS}"

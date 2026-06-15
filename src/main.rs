@@ -87,7 +87,7 @@ async fn connect_http_or_ws(rpc_url: &str) -> Result<RpcProvider> {
 }
 
 async fn connect_ws_for_blocks(cfg: &BotConfig) -> Result<Arc<Provider<Ws>>> {
-    let ws_url = cfg.ws_rpc_url.as_deref().unwrap_or(&cfg.rpc_url);
+    let ws_url = cfg.ws_rpc_url().unwrap_or(&cfg.rpc_url);
     if !ws_url.starts_with("ws://") && !ws_url.starts_with("wss://") {
         bail!("watch-blocks requires ws_rpc_url or rpc_url to start with ws:// or wss://");
     }

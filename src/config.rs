@@ -141,11 +141,6 @@ impl BotConfig {
         if self.rpc_url.trim().is_empty() {
             bail!("rpc_url cannot be empty");
         }
-        if let Some(ws_rpc_url) = &self.ws_rpc_url {
-            if ws_rpc_url.trim().is_empty() {
-                bail!("ws_rpc_url cannot be empty when configured");
-            }
-        }
         if self.trade_sizes.is_empty() {
             bail!("configure at least one trade_sizes entry");
         }
@@ -164,6 +159,13 @@ impl BotConfig {
             }
         }
         Ok(())
+    }
+
+    pub fn ws_rpc_url(&self) -> Option<&str> {
+        self.ws_rpc_url
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
     }
 }
 
