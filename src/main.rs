@@ -2,6 +2,7 @@ mod abis;
 mod config;
 mod dex;
 mod executor;
+mod notifier;
 mod scanner;
 
 use std::sync::Arc;
@@ -211,6 +212,7 @@ where
             gas_adjusted = opportunity.gas_adjusted,
             "🚀💰 ARBITRAGE OPPORTUNITY FOUND 💰🚀"
         );
+        notifier::notify_opportunity(cfg, &opportunity);
         println!("{}", serde_json::to_string(&opportunity)?);
         // live 模式只调用你自己的执行合约，不监听 pending transaction，也不做抢跑/夹子。
         if cfg.run_mode.is_live() {

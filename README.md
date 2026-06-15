@@ -12,6 +12,7 @@ Rust bot for compliant Uniswap V2/V3 arbitrage scanning. It only uses confirmed 
 - Runs in `dry_run` by default and prints opportunities as JSON.
 - Supports optional `live` execution through your own deployed executor contract.
 - Example config scans WETH pairs for LINK, UNI, AAVE, and WBTC.
+- Sends optional Telegram alerts when an arbitrage opportunity is found.
 
 ## Quick Start
 
@@ -39,6 +40,14 @@ cargo run -- --config config.yaml watch-blocks
 The bot loads `.env` automatically on startup. `config.yaml` supports `${VAR}` placeholders, so keep secrets like `RPC_URL` and `PRIVATE_KEY` in `.env` instead of committing them.
 
 `watch-blocks` 需要配置 `WS_RPC_URL`，或者把 `RPC_URL` 设置成 `wss://` 开头。它只订阅新区块，不订阅 pending transaction。
+
+Telegram alerts are disabled by default. To enable them, set:
+
+```env
+TELEGRAM_ENABLED=true
+TELEGRAM_BOT_TOKEN=123456:your_bot_token
+TELEGRAM_CHAT_ID=123456789
+```
 
 `trade_sizes` should be conservative. A profitable quote can disappear before your transaction lands, and larger trades create more price impact.
 

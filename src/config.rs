@@ -38,6 +38,8 @@ pub struct BotConfig {
     pub pools: Vec<PoolConfig>,
     /// live 模式需要的执行合约和签名私钥配置。
     pub executor: Option<ExecutorConfig>,
+    /// Telegram 通知配置；发现套利机会时异步发送消息。
+    pub telegram: Option<TelegramConfig>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -73,6 +75,17 @@ pub struct ExecutorConfig {
     /// 执行交易 deadline，单位秒。
     #[serde(default = "default_deadline_secs")]
     pub deadline_secs: u64,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TelegramConfig {
+    /// 是否启用 Telegram 通知。
+    #[serde(default)]
+    pub enabled: bool,
+    /// Telegram Bot Token，必须放在 .env，不要提交真实值。
+    pub bot_token: String,
+    /// 接收消息的 chat_id，可以是个人、群组或频道 ID。
+    pub chat_id: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -149,6 +162,16 @@ impl BotConfig {
         }
         if self.run_mode.is_live() && self.executor.is_none() {
             bail!("live mode requires executor.address and executor.private_key");
+        }
+        if let Some(telegram) = &self.telegram {
+            if telegram.enabled {
+                if telegram.bot_token.trim().is_empty() {
+                    bail!("telegram.bot_token cannot be empty when telegram is enabled");
+                }
+                if telegram.chat_id.trim().is_empty() {
+                    bail!("telegram.chat_id cannot be empty when telegram is enabled");
+                }
+            }
         }
         for trade in &self.trade_sizes {
             parse_u256_dec(&trade.amount_wei)?;

@@ -26,6 +26,12 @@ max_gas_price_gwei: ${MAX_GAS_PRICE_GWEI}
 # 调试报价开关；true 会输出每条路线报价和过滤原因。
 debug_quotes: ${DEBUG_QUOTES}
 
+# Telegram 通知；发现套利机会时异步通知，不阻塞扫描流程。
+telegram:
+  enabled: ${TELEGRAM_ENABLED}
+  bot_token: "${TELEGRAM_BOT_TOKEN}"
+  chat_id: "${TELEGRAM_CHAT_ID}"
+
 trade_sizes:
   # 单次尝试交易规模；token 是起始 token，amount_wei 是最小单位整数。
   - token: "${WETH_ADDRESS}"
