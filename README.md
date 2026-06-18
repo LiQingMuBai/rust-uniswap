@@ -4,14 +4,14 @@ Rust bot for compliant Uniswap V2/V3 arbitrage scanning. It only uses confirmed 
 
 ## What It Does
 
-- Scans configured Uniswap V2/V3 pools for two-leg closed-loop arbitrage.
+- Scans configured Uniswap V2/V3 and SushiSwap V2 pools for two-leg closed-loop arbitrage.
 - Quotes V2 pools from pair reserves.
 - Quotes V3 pools through the Uniswap V3 Quoter contract.
 - Applies a configurable minimum profit threshold.
 - Deducts estimated gas when the start token is `native_wrapped_token`.
 - Runs in `dry_run` by default and prints opportunities as JSON.
 - Supports optional `live` execution through your own deployed executor contract.
-- Example config scans WETH pairs for LINK, UNI, AAVE, and WBTC.
+- Example config scans WETH pairs for LINK, UNI, AAVE, and WBTC across Uniswap and SushiSwap.
 - Sends optional Telegram alerts when an arbitrage opportunity is found.
 
 ## Quick Start

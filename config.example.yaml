@@ -58,6 +58,15 @@ pools:
     # V3 fee tier；WETH/LINK 先用 3000 = 0.30%。
     fee: ${UNISWAP_V3_FEE}
 
+  # SushiSwap V2 WETH/LINK 池：支持跨 Uniswap/SushiSwap 比价。
+  - kind: v2
+    name: "sushiswap-v2-weth-link"
+    pair: "${SUSHISWAP_V2_WETH_LINK_PAIR}"
+    router: "${SUSHISWAP_V2_ROUTER}"
+    token0: "${LINK_ADDRESS}"
+    token1: "${WETH_ADDRESS}"
+    fee_bps: ${SUSHISWAP_V2_FEE_BPS}
+
   # Uniswap V2 WETH/UNI 池。
   - kind: v2
     name: "uniswap-v2-weth-uni"
@@ -75,6 +84,15 @@ pools:
     token0: "${UNI_ADDRESS}"
     token1: "${WETH_ADDRESS}"
     fee: ${UNISWAP_V3_FEE}
+
+  # SushiSwap V2 WETH/UNI 池。
+  - kind: v2
+    name: "sushiswap-v2-weth-uni"
+    pair: "${SUSHISWAP_V2_WETH_UNI_PAIR}"
+    router: "${SUSHISWAP_V2_ROUTER}"
+    token0: "${UNI_ADDRESS}"
+    token1: "${WETH_ADDRESS}"
+    fee_bps: ${SUSHISWAP_V2_FEE_BPS}
 
   # Uniswap V2 WETH/AAVE 池。
   - kind: v2
@@ -94,6 +112,15 @@ pools:
     token1: "${WETH_ADDRESS}"
     fee: ${UNISWAP_V3_FEE}
 
+  # SushiSwap V2 WETH/AAVE 池。
+  - kind: v2
+    name: "sushiswap-v2-weth-aave"
+    pair: "${SUSHISWAP_V2_WETH_AAVE_PAIR}"
+    router: "${SUSHISWAP_V2_ROUTER}"
+    token0: "${AAVE_ADDRESS}"
+    token1: "${WETH_ADDRESS}"
+    fee_bps: ${SUSHISWAP_V2_FEE_BPS}
+
   # Uniswap V2 WETH/WBTC 池。
   - kind: v2
     name: "uniswap-v2-weth-wbtc"
@@ -111,6 +138,15 @@ pools:
     token0: "${WBTC_ADDRESS}"
     token1: "${WETH_ADDRESS}"
     fee: ${UNISWAP_V3_FEE}
+
+  # SushiSwap V2 WETH/WBTC 池。
+  - kind: v2
+    name: "sushiswap-v2-weth-wbtc"
+    pair: "${SUSHISWAP_V2_WETH_WBTC_PAIR}"
+    router: "${SUSHISWAP_V2_ROUTER}"
+    token0: "${WBTC_ADDRESS}"
+    token1: "${WETH_ADDRESS}"
+    fee_bps: ${SUSHISWAP_V2_FEE_BPS}
 
 # 仅在 run_mode: live 时需要。真实私钥请使用 ${PRIVATE_KEY}，不要写死。
 # executor:
