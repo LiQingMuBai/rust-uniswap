@@ -5,7 +5,7 @@ use std::{
 
 use ethers::{
     providers::Middleware,
-    types::{Address, U256},
+    types::{Address, H256, U256},
     utils::parse_units,
 };
 use eyre::Result;
@@ -59,12 +59,14 @@ pub struct Opportunity {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct ExecutionLeg {
-    /// 0 = V2，1 = V3；需要和 Solidity 枚举保持一致。
+    /// 0 = V2，1 = V3，2 = BalancerV2；需要和 Solidity 枚举保持一致。
     pub kind: u8,
     /// 对应 swap router 地址。
     pub router: Address,
     /// V3 fee tier；V2 固定填 0。
     pub fee: u32,
+    /// Balancer V2 poolId；非 Balancer 路线填 0。
+    pub pool_id: H256,
     pub token_in: Address,
     pub token_out: Address,
 }
@@ -412,14 +414,16 @@ fn same_token_pair(a: &PoolConfig, b: &PoolConfig) -> bool {
 
 fn leg_from_pool(pool: &PoolConfig, token_in: Address, token_out: Address) -> ExecutionLeg {
     // 这里的 kind 必须和 contracts/ArbExecutor.sol 里的 DexKind 枚举顺序一致。
-    let (kind, fee) = match pool {
-        PoolConfig::V2 { .. } => (0, 0),
-        PoolConfig::V3 { fee, .. } => (1, *fee),
+    let (kind, fee, pool_id) = match pool {
+        PoolConfig::V2 { .. } => (0, 0, H256::zero()),
+        PoolConfig::V3 { fee, .. } => (1, *fee, H256::zero()),
+        PoolConfig::BalancerV2 { pool_id, .. } => (2, 0, *pool_id),
     };
     ExecutionLeg {
         kind,
         router: pool.router(),
         fee,
+        pool_id,
         token_in,
         token_out,
     }

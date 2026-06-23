@@ -38,11 +38,44 @@ interface ISwapRouter {
         returns (uint256 amountOut);
 }
 
+// Balancer V2 Vault 的最小接口。
+interface IBalancerV2Vault {
+    enum SwapKind {
+        GIVEN_IN,
+        GIVEN_OUT
+    }
+
+    struct BatchSwapStep {
+        bytes32 poolId;
+        uint256 assetInIndex;
+        uint256 assetOutIndex;
+        uint256 amount;
+        bytes userData;
+    }
+
+    struct FundManagement {
+        address sender;
+        bool fromInternalBalance;
+        address payable recipient;
+        bool toInternalBalance;
+    }
+
+    function batchSwap(
+        SwapKind kind,
+        BatchSwapStep[] calldata swaps,
+        address[] calldata assets,
+        FundManagement calldata funds,
+        int256[] calldata limits,
+        uint256 deadline
+    ) external payable returns (int256[] memory assetDeltas);
+}
+
 contract ArbExecutor {
-    // 必须和 Rust 里的 ExecutionLeg.kind 保持一致：0 = V2，1 = V3。
+    // 必须和 Rust 里的 ExecutionLeg.kind 保持一致：0 = V2，1 = V3，2 = BalancerV2。
     enum DexKind {
         V2,
-        V3
+        V3,
+        BalancerV2
     }
 
     // Rust 扫描器输出的单跳交易路径。
@@ -50,6 +83,7 @@ contract ArbExecutor {
         DexKind kind;
         address router;
         uint24 fee;
+        bytes32 poolId;
         address tokenIn;
         address tokenOut;
     }
@@ -97,32 +131,11 @@ contract ArbExecutor {
             _approveExact(leg.tokenIn, leg.router, currentAmount);
 
             if (leg.kind == DexKind.V2) {
-                // V2 两 token path：tokenIn -> tokenOut。
-                address[] memory path = new address[](2);
-                path[0] = leg.tokenIn;
-                path[1] = leg.tokenOut;
-                uint256[] memory amounts = IUniswapV2Router02(leg.router).swapExactTokensForTokens(
-                    currentAmount,
-                    0,
-                    path,
-                    address(this),
-                    deadline
-                );
-                currentAmount = amounts[amounts.length - 1];
+                currentAmount = _swapV2(leg, currentAmount, deadline);
             } else if (leg.kind == DexKind.V3) {
-                // V3 exactInputSingle：单池单跳 swap。
-                currentAmount = ISwapRouter(leg.router).exactInputSingle(
-                    ISwapRouter.ExactInputSingleParams({
-                        tokenIn: leg.tokenIn,
-                        tokenOut: leg.tokenOut,
-                        fee: leg.fee,
-                        recipient: address(this),
-                        deadline: deadline,
-                        amountIn: currentAmount,
-                        amountOutMinimum: 0,
-                        sqrtPriceLimitX96: 0
-                    })
-                );
+                currentAmount = _swapV3(leg, currentAmount, deadline);
+            } else if (leg.kind == DexKind.BalancerV2) {
+                currentAmount = _swapBalancerV2(leg, currentAmount, deadline);
             } else {
                 revert RouteMismatch();
             }
@@ -144,6 +157,73 @@ contract ArbExecutor {
 
     function rescue(address token, uint256 amount) external onlyOwner {
         if (!IERC20(token).transfer(owner, amount)) revert TransferFailed();
+    }
+
+    function _swapV2(SwapLeg calldata leg, uint256 amountIn, uint256 deadline) private returns (uint256) {
+        // V2 两 token path：tokenIn -> tokenOut。
+        address[] memory path = new address[](2);
+        path[0] = leg.tokenIn;
+        path[1] = leg.tokenOut;
+        uint256[] memory amounts = IUniswapV2Router02(leg.router).swapExactTokensForTokens(
+            amountIn,
+            0,
+            path,
+            address(this),
+            deadline
+        );
+        return amounts[amounts.length - 1];
+    }
+
+    function _swapV3(SwapLeg calldata leg, uint256 amountIn, uint256 deadline) private returns (uint256) {
+        // V3 exactInputSingle：单池单跳 swap。
+        return ISwapRouter(leg.router).exactInputSingle(
+            ISwapRouter.ExactInputSingleParams({
+                tokenIn: leg.tokenIn,
+                tokenOut: leg.tokenOut,
+                fee: leg.fee,
+                recipient: address(this),
+                deadline: deadline,
+                amountIn: amountIn,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            })
+        );
+    }
+
+    function _swapBalancerV2(SwapLeg calldata leg, uint256 amountIn, uint256 deadline) private returns (uint256) {
+        // Balancer V2 通过 Vault batchSwap 执行单池单跳。
+        uint256 balanceBefore = IERC20(leg.tokenOut).balanceOf(address(this));
+        IBalancerV2Vault.BatchSwapStep[] memory swaps = new IBalancerV2Vault.BatchSwapStep[](1);
+        swaps[0] = IBalancerV2Vault.BatchSwapStep({
+            poolId: leg.poolId,
+            assetInIndex: 0,
+            assetOutIndex: 1,
+            amount: amountIn,
+            userData: ""
+        });
+
+        address[] memory assets = new address[](2);
+        assets[0] = leg.tokenIn;
+        assets[1] = leg.tokenOut;
+
+        int256[] memory limits = new int256[](2);
+        limits[0] = int256(amountIn);
+        limits[1] = 0;
+
+        IBalancerV2Vault(leg.router).batchSwap(
+            IBalancerV2Vault.SwapKind.GIVEN_IN,
+            swaps,
+            assets,
+            IBalancerV2Vault.FundManagement({
+                sender: address(this),
+                fromInternalBalance: false,
+                recipient: payable(address(this)),
+                toInternalBalance: false
+            }),
+            limits,
+            deadline
+        );
+        return IERC20(leg.tokenOut).balanceOf(address(this)) - balanceBefore;
     }
 
     function _approveExact(address token, address spender, uint256 amount) private {

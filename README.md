@@ -7,6 +7,7 @@
 - Uniswap V2
 - Uniswap V3
 - SushiSwap V2
+- Balancer V2
 - WETH/LINK、WETH/UNI、WETH/AAVE、WETH/WBTC
 - 固定间隔扫描和 WSS 新区块触发扫描
 - dry-run 输出、live 执行合约、Telegram 异步通知
@@ -21,9 +22,11 @@ flowchart LR
 
     Scanner --> V2["V2 Pools\nUniswap V2 / SushiSwap V2\ngetReserves"]
     Scanner --> V3["Uniswap V3 Quoter\nquoteExactInputSingle"]
+    Scanner --> Balancer["Balancer V2 Vault\nqueryBatchSwap"]
 
     V2 --> Profit["利润计算\n手续费 / gas / bps"]
     V3 --> Profit
+    Balancer --> Profit
 
     Profit --> NoTrade["无机会\n日志输出"]
     Profit --> Opportunity["套利机会"]
@@ -49,6 +52,7 @@ WETH -> Token -> WETH
 Uniswap V2 WETH/LINK -> SushiSwap V2 WETH/LINK
 SushiSwap V2 WETH/WBTC -> Uniswap V3 WETH/WBTC
 Uniswap V3 WETH/UNI -> Uniswap V2 WETH/UNI
+Balancer V2 WETH/LINK -> Uniswap V2 WETH/LINK
 ```
 
 ```mermaid
@@ -57,6 +61,7 @@ sequenceDiagram
     participant RPC as "Ethereum RPC"
     participant V2 as "V2 Pair"
     participant V3 as "V3 Quoter"
+    participant BAL as "Balancer Vault"
     participant TG as "Telegram"
     participant EX as "ArbExecutor"
 
@@ -65,6 +70,8 @@ sequenceDiagram
     V2-->>Bot: reserve0 / reserve1
     Bot->>V3: quoteExactInputSingle(...)
     V3-->>Bot: amountOut
+    Bot->>BAL: queryBatchSwap(...)
+    BAL-->>Bot: assetDeltas
     Bot->>Bot: 计算闭环输出和利润
     alt "没有利润"
         Bot->>Bot: 输出 no profitable opportunities found
@@ -85,8 +92,8 @@ sequenceDiagram
 flowchart TB
     Main["src/main.rs\nCLI / provider / run loop"] --> Config["src/config.rs\nYAML + .env 配置"]
     Main --> Scanner["src/scanner.rs\n路线扫描 / 利润过滤"]
-    Scanner --> Dex["src/dex.rs\nV2/V3 报价"]
-    Dex --> Abis["src/abis.rs\nERC20 / V2 Pair / V3 Quoter ABI"]
+    Scanner --> Dex["src/dex.rs\nV2/V3/Balancer 报价"]
+    Dex --> Abis["src/abis.rs\nERC20 / V2 Pair / V3 Quoter / Balancer Vault ABI"]
     Main --> Notifier["src/notifier.rs\nTelegram 异步通知"]
     Main --> Executor["src/executor.rs\n调用执行合约"]
     Executor --> Contract["contracts/ArbExecutor.sol\n链上 swap 执行器"]
@@ -96,11 +103,11 @@ flowchart TB
 | --- | --- |
 | `src/main.rs` | CLI 命令、HTTP/WSS provider、扫描循环 |
 | `src/config.rs` | 加载 `.env` 和 `config.yaml`，校验参数 |
-| `src/dex.rs` | V2 reserve 报价、V3 Quoter 报价 |
+| `src/dex.rs` | V2 reserve 报价、V3 Quoter 报价、Balancer Vault 报价 |
 | `src/scanner.rs` | 枚举同交易对池子，计算两跳闭环利润 |
 | `src/notifier.rs` | 发现机会后异步 Telegram 通知 |
 | `src/executor.rs` | live 模式下调用执行合约 |
-| `contracts/ArbExecutor.sol` | 执行 V2/V3 两跳 swap 并做 `minAmountOut` 保护 |
+| `contracts/ArbExecutor.sol` | 执行 V2/V3/Balancer 两跳 swap 并做 `minAmountOut` 保护 |
 
 ## Runtime Modes
 
@@ -184,6 +191,14 @@ pools:
   - kind: v2
     name: "sushiswap-v2-weth-wbtc"
     pair: "${SUSHISWAP_V2_WETH_WBTC_PAIR}"
+
+  # Balancer V2 示例；pool_id 必须替换为真实 32 字节 poolId。
+  # - kind: balancer_v2
+  #   name: "balancer-v2-weth-link"
+  #   vault: "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
+  #   pool_id: "0xYour32ByteBalancerPoolId"
+  #   token0: "0xLinkToken"
+  #   token1: "0xWethToken"
 ```
 
 真实 `.env` 和 `config.yaml` 已被 `.gitignore` 忽略，只提交 `.env.example` 和 `config.example.yaml`。
@@ -242,6 +257,17 @@ cargo run -- --config config.yaml once
 | `quote_error` | Quoter 或 RPC 报价失败 |
 | `pool_pair_mismatch` | 两个池不是同一交易对 |
 | `first_quote_zero` | 第一跳输出为 0 |
+
+## Balancer V2
+
+Balancer V2 使用统一 Vault 入口。机器人在扫描时对 `queryBatchSwap` 做 `eth_call` 报价；live 模式下，执行合约使用同一个 Vault 的 `batchSwap` 完成单跳 swap。
+
+配置要点：
+
+- `vault` 填 Balancer V2 Vault 地址。
+- `pool_id` 填真实 32 字节 poolId，不能填普通 token 地址或 pair 地址。
+- `token0` / `token1` 要和这个 Balancer 池实际支持的两个 token 对应。
+- 只要交易对相同，Balancer 池可以和 Uniswap V2/V3、SushiSwap V2 做跨平台比较。
 
 ## Telegram Alerts
 

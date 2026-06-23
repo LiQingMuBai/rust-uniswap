@@ -25,6 +25,7 @@ const EXECUTOR_ABI: &str = r#"[
           {"internalType":"uint8","name":"kind","type":"uint8"},
           {"internalType":"address","name":"router","type":"address"},
           {"internalType":"uint24","name":"fee","type":"uint24"},
+          {"internalType":"bytes32","name":"poolId","type":"bytes32"},
           {"internalType":"address","name":"tokenIn","type":"address"},
           {"internalType":"address","name":"tokenOut","type":"address"}
         ],
@@ -65,10 +66,19 @@ pub async fn execute(
     // minAmountOut = 本金 + 最低利润，用合约层防止成交后利润不足。
     let min_amount_out = min_amount_out(opportunity.amount_in, cfg.min_profit_bps);
     let deadline = U256::from(now_unix_ts() + executor.deadline_secs);
-    let legs: Vec<(u8, Address, u32, Address, Address)> = opportunity
+    let legs: Vec<(u8, Address, u32, ethers::types::H256, Address, Address)> = opportunity
         .legs
         .iter()
-        .map(|leg| (leg.kind, leg.router, leg.fee, leg.token_in, leg.token_out))
+        .map(|leg| {
+            (
+                leg.kind,
+                leg.router,
+                leg.fee,
+                leg.pool_id,
+                leg.token_in,
+                leg.token_out,
+            )
+        })
         .collect();
 
     let call = contract.method::<_, U256>(

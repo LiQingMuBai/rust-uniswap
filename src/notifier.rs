@@ -93,7 +93,7 @@ fn html_escape(value: &str) -> String {
 mod tests {
     use std::env;
 
-    use ethers::types::{Address, U256};
+    use ethers::types::{Address, H256, U256};
 
     use super::*;
     use crate::scanner::{ExecutionLeg, Opportunity};
@@ -118,6 +118,7 @@ mod tests {
                 kind: 0,
                 router: Address::from_low_u64_be(3),
                 fee: 0,
+                pool_id: H256::zero(),
                 token_in: token_start,
                 token_out: token_mid,
             }],

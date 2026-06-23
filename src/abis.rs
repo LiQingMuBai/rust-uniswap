@@ -29,3 +29,43 @@ abigen!(
         function quoteExactInputSingle(address tokenIn, address tokenOut, uint24 fee, uint256 amountIn, uint160 sqrtPriceLimitX96) external returns (uint256 amountOut)
     ]"#,
 );
+
+// Balancer V2 报价和执行都通过 Vault。queryBatchSwap 是 eth_call 报价入口。
+abigen!(
+    IBalancerV2Vault,
+    r#"[
+      {
+        "inputs": [
+          {"internalType":"enum IVault.SwapKind","name":"kind","type":"uint8"},
+          {
+            "components": [
+              {"internalType":"bytes32","name":"poolId","type":"bytes32"},
+              {"internalType":"uint256","name":"assetInIndex","type":"uint256"},
+              {"internalType":"uint256","name":"assetOutIndex","type":"uint256"},
+              {"internalType":"uint256","name":"amount","type":"uint256"},
+              {"internalType":"bytes","name":"userData","type":"bytes"}
+            ],
+            "internalType":"struct IVault.BatchSwapStep[]",
+            "name":"swaps",
+            "type":"tuple[]"
+          },
+          {"internalType":"contract IAsset[]","name":"assets","type":"address[]"},
+          {
+            "components": [
+              {"internalType":"address","name":"sender","type":"address"},
+              {"internalType":"bool","name":"fromInternalBalance","type":"bool"},
+              {"internalType":"address payable","name":"recipient","type":"address"},
+              {"internalType":"bool","name":"toInternalBalance","type":"bool"}
+            ],
+            "internalType":"struct IVault.FundManagement",
+            "name":"funds",
+            "type":"tuple"
+          }
+        ],
+        "name":"queryBatchSwap",
+        "outputs":[{"internalType":"int256[]","name":"assetDeltas","type":"int256[]"}],
+        "stateMutability":"nonpayable",
+        "type":"function"
+      }
+    ]"#,
+);

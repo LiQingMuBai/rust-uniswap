@@ -3,12 +3,12 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use ethers::{
     providers::Middleware,
-    types::{Address, U256},
+    types::{Address, Bytes, I256, U256},
 };
 use eyre::{Result, bail};
 
 use crate::{
-    abis::{IUniswapV2Pair, IUniswapV3Quoter},
+    abis::{BatchSwapStep, FundManagement, IBalancerV2Vault, IUniswapV2Pair, IUniswapV3Quoter},
     config::PoolConfig,
 };
 
@@ -18,6 +18,8 @@ pub enum DexKind {
     V2,
     /// Uniswap V3 concentrated-liquidity 池。
     V3,
+    /// Balancer V2 Vault 池。
+    BalancerV2,
 }
 
 #[derive(Clone, Debug, serde::Serialize)]
@@ -110,8 +112,66 @@ where
                     amount_out,
                 })
             }
+            PoolConfig::BalancerV2 {
+                name,
+                vault,
+                pool_id,
+                token0,
+                token1,
+            } => {
+                let token_out = other_token(*token0, *token1, token_in)?;
+                let vault = IBalancerV2Vault::new(*vault, self.provider.clone());
+                let swaps = vec![BatchSwapStep {
+                    pool_id: (*pool_id).into(),
+                    asset_in_index: U256::zero(),
+                    asset_out_index: U256::one(),
+                    amount: amount_in,
+                    user_data: Bytes::default(),
+                }];
+                let assets = vec![token_in, token_out];
+                let funds = FundManagement {
+                    sender: Address::zero(),
+                    from_internal_balance: false,
+                    recipient: Address::zero(),
+                    to_internal_balance: false,
+                };
+                let deltas = vault
+                    .query_batch_swap(0_u8, swaps, assets, funds)
+                    .call()
+                    .await?;
+                let amount_out = balancer_amount_out(&deltas)?;
+                Ok(Quote {
+                    pool_name: name.clone(),
+                    kind: DexKind::BalancerV2,
+                    token_in,
+                    token_out,
+                    amount_in,
+                    amount_out,
+                })
+            }
         }
     }
+}
+
+fn balancer_amount_out(deltas: &[I256]) -> Result<U256> {
+    if deltas.len() < 2 {
+        bail!("Balancer queryBatchSwap returned fewer than two asset deltas");
+    }
+    let token_out_delta = deltas[1];
+    if token_out_delta >= I256::zero() {
+        return Ok(U256::zero());
+    }
+    i256_abs_to_u256(token_out_delta)
+}
+
+fn i256_abs_to_u256(value: I256) -> Result<U256> {
+    if value >= I256::zero() {
+        return Ok(value.into_raw());
+    }
+    let abs = value
+        .checked_neg()
+        .ok_or_else(|| eyre::eyre!("failed to negate Balancer int256 delta"))?;
+    Ok(abs.into_raw())
 }
 
 async fn v2_reserves(

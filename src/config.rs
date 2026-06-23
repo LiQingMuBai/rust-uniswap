@@ -1,6 +1,6 @@
 use std::{env, fs, path::Path};
 
-use ethers::types::Address;
+use ethers::types::{Address, H256};
 use eyre::{Result, bail, eyre};
 use serde::{Deserialize, Serialize};
 
@@ -33,7 +33,7 @@ pub struct BotConfig {
     /// 每次扫描尝试的起始 token 和输入金额列表。
     #[serde(default)]
     pub trade_sizes: Vec<TradeSize>,
-    /// 参与比较的 Uniswap V2/V3 池配置。
+    /// 参与比较的 DEX 池配置。
     #[serde(default)]
     pub pools: Vec<PoolConfig>,
     /// live 模式需要的执行合约和签名私钥配置。
@@ -110,30 +110,43 @@ pub enum PoolConfig {
         token1: Address,
         fee: u32,
     },
+    /// Balancer V2 池：通过 Vault 的 queryBatchSwap 获取报价。
+    BalancerV2 {
+        name: String,
+        vault: Address,
+        pool_id: H256,
+        token0: Address,
+        token1: Address,
+    },
 }
 
 impl PoolConfig {
     pub fn name(&self) -> &str {
         match self {
-            Self::V2 { name, .. } | Self::V3 { name, .. } => name,
+            Self::V2 { name, .. } | Self::V3 { name, .. } | Self::BalancerV2 { name, .. } => name,
         }
     }
 
     pub fn router(&self) -> Address {
         match self {
             Self::V2 { router, .. } | Self::V3 { router, .. } => *router,
+            Self::BalancerV2 { vault, .. } => *vault,
         }
     }
 
     pub fn token0(&self) -> Address {
         match self {
-            Self::V2 { token0, .. } | Self::V3 { token0, .. } => *token0,
+            Self::V2 { token0, .. } | Self::V3 { token0, .. } | Self::BalancerV2 { token0, .. } => {
+                *token0
+            }
         }
     }
 
     pub fn token1(&self) -> Address {
         match self {
-            Self::V2 { token1, .. } | Self::V3 { token1, .. } => *token1,
+            Self::V2 { token1, .. } | Self::V3 { token1, .. } | Self::BalancerV2 { token1, .. } => {
+                *token1
+            }
         }
     }
 

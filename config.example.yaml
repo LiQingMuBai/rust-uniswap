@@ -148,6 +148,15 @@ pools:
     token1: "${WETH_ADDRESS}"
     fee_bps: ${SUSHISWAP_V2_FEE_BPS}
 
+  # Balancer V2 池配置模板。
+  # 注意：pool_id 是 32 字节 bytes32，不是普通 pair 地址；启用前请填真实 poolId。
+  # - kind: balancer_v2
+  #   name: "balancer-v2-weth-link"
+  #   vault: "0xBalancerV2Vault"
+  #   pool_id: "0xYour32ByteBalancerPoolId"
+  #   token0: "0xLinkToken"
+  #   token1: "0xWethToken"
+
 # 仅在 run_mode: live 时需要。真实私钥请使用 ${PRIVATE_KEY}，不要写死。
 # executor:
 #   address: "${EXECUTOR_ADDRESS}"
